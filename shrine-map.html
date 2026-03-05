@@ -1,1 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>吉方位神社マップ</title>
 
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<style>
+
+body{
+font-family:sans-serif;
+margin:0;
+background:#0f172a;
+color:white;
+}
+
+h1{
+text-align:center;
+padding:10px;
+}
+
+#map{
+height:80vh;
+width:100%;
+}
+
+#info{
+padding:10px;
+text-align:center;
+}
+
+button{
+padding:10px 20px;
+font-size:16px;
+background:#22c55e;
+border:none;
+border-radius:10px;
+color:white;
+}
+
+</style>
+
+</head>
+<body>
+
+<h1>⛩️ 吉方位の神社</h1>
+
+<div id="info">
+
+<button onclick="findShrines()">神社を探す</button>
+
+<p id="direction"></p>
+
+</div>
+
+<div id="map"></div>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
+
+<script>
+
+let map;
+
+function initMap(lat,lon){
+
+map = new google.maps.Map(document.getElementById("map"),{
+zoom:12,
+center:{lat:lat,lng:lon}
+});
+
+new google.maps.Marker({
+position:{lat:lat,lng:lon},
+map:map,
+title:"現在地"
+});
+
+}
+
+function getDirection(angle){
+
+if(angle<45) return "北";
+if(angle<90) return "北東";
+if(angle<135) return "東";
+if(angle<180) return "南東";
+if(angle<225) return "南";
+if(angle<270) return "南西";
+if(angle<315) return "西";
+return "北西";
+
+}
+
+function findShrines(){
+
+navigator.geolocation.getCurrentPosition(function(pos){
+
+let lat = pos.coords.latitude;
+let lon = pos.coords.longitude;
+
+initMap(lat,lon);
+
+let today = new Date().getDate();
+
+let luckyAngle = (today * 23) % 360;
+
+let luckyDirection = getDirection(luckyAngle);
+
+document.getElementById("direction").innerText =
+"今日の吉方位: " + luckyDirection;
+
+searchShrines(lat,lon);
+
+});
+
+}
+
+function searchShrines(lat,lon){
+
+let service = new google.maps.places.PlacesService(map);
+
+service.nearbySearch({
+location:{lat:lat,lng:lon},
+radius:5000,
+keyword:"神社"
+},function(results,status){
+
+if(status===google.maps.places.PlacesServiceStatus.OK){
+
+for(let i=0;i<results.length;i++){
+
+createMarker(results[i]);
+
+}
+
+}
+
+});
+
+}
+
+function createMarker(place){
+
+new google.maps.Marker({
+map:map,
+position:place.geometry.location,
+title:place.name,
+icon:"https://maps.google.com/mapfiles/kml/shapes/temple.png"
+});
+
+}
+
+</script>
+
+</body>
+</html>
