@@ -39,74 +39,12 @@ background: var(–ink);
 color: var(–ink);
 }
 
-/* ── SPLASH ── */
-#splash {
-position: fixed; inset: 0; z-index: 9999;
-background: var(–ink);
-display: flex; flex-direction: column; align-items: center; justify-content: center;
-gap: 0;
-transition: opacity 0.8s ease;
-}
-#splash.fade { opacity: 0; pointer-events: none; }
-.splash-torii {
-font-size: 72px;
-animation: toriiFloat 2s ease-in-out infinite;
-filter: drop-shadow(0 0 24px rgba(200,146,42,0.6));
-}
-@keyframes toriiFloat {
-0%,100%{transform:translateY(0) scale(1);}
-50%{transform:translateY(-10px) scale(1.04);}
-}
-.splash-title {
-font-family: ‘Cinzel Decorative’, serif;
-color: var(–gold);
-font-size: 13px;
-letter-spacing: 0.4em;
-margin-top: 20px;
-animation: fadeIn 1s ease 0.3s both;
-}
-.splash-subtitle {
-font-family: ‘Shippori Mincho’, serif;
-color: var(–mist);
-font-size: 22px;
-letter-spacing: 0.2em;
-margin-top: 8px;
-animation: fadeIn 1s ease 0.6s both;
-}
-.splash-tagline {
-color: var(–mist2);
-font-size: 12px;
-letter-spacing: 0.15em;
-margin-top: 16px;
-opacity: 0.7;
-animation: fadeIn 1s ease 0.9s both;
-}
-.splash-progress {
-width: 200px; height: 2px;
-background: rgba(255,255,255,0.1);
-border-radius: 1px;
-margin-top: 32px;
-overflow: hidden;
-animation: fadeIn 0.5s ease 0.5s both;
-}
-.splash-progress-bar {
-height: 100%;
-background: linear-gradient(90deg, var(–vermillion), var(–gold), var(–gold2));
-border-radius: 1px;
-animation: progressFill 1.8s ease-in-out 0.5s both;
-}
-@keyframes progressFill { from{width:0} to{width:100%} }
-@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-
 /* ── LAYOUT ── */
 #app {
 display: grid;
 grid-template-columns: 360px 1fr;
 height: 100vh;
-opacity: 0;
-transition: opacity 0.5s ease;
 }
-#app.visible { opacity: 1; }
 
 /* ── SIDEBAR ── */
 .sidebar {
@@ -114,6 +52,7 @@ background: var(–paper);
 display: flex;
 flex-direction: column;
 height: 100vh;
+min-height: 0;
 border-right: 1.5px solid var(–gold);
 position: relative;
 overflow: hidden;
@@ -149,8 +88,12 @@ user-select: none;
 .nav-tab.active { color: var(–gold2); border-bottom-color: var(–gold); background: rgba(200,146,42,0.08); }
 
 /* PANEL PAGES */
-.panel-page { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+.panel-page { display: none; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
 .panel-page.active { display: flex; }
+
+/* Panels that scroll entirely (no sticky header) */
+.panel-page.scroll-panel { overflow-y: auto; }
+
 .panel-page::-webkit-scrollbar { width: 3px; }
 .panel-page::-webkit-scrollbar-thumb { background: var(–mist); border-radius: 2px; }
 
@@ -201,7 +144,9 @@ background: var(–paper);
 font-weight: 600;
 }
 
-.home-content { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.home-content { padding: 16px; display: flex; flex-direction: column; gap: 14px; flex: 1; overflow-y: auto; min-height: 0; }
+.home-content::-webkit-scrollbar { width: 3px; }
+.home-content::-webkit-scrollbar-thumb { background: var(–mist); border-radius: 2px; }
 
 /* Star result card */
 .star-card {
@@ -387,6 +332,8 @@ font-weight: 600;
 
 /* ── PANEL: SETTINGS ── */
 .settings-content { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.settings-content .form-group { display: flex; flex-direction: column; gap: 6px; }
+.settings-content .form-group label { font-size: 10px; color: #7a6a50; letter-spacing: .08em; }
 .settings-section { display: flex; flex-direction: column; gap: 10px; }
 .profile-list { display: flex; flex-direction: column; gap: 8px; }
 .profile-item {
@@ -534,7 +481,7 @@ animation: shimmer 3s linear infinite;
 .draw-btn:active { transform: translateY(0); }
 
 /* ── MAP AREA ── */
-.map-area { position: relative; background: #1a2a1a; }
+.map-area { position: relative; background: #1a2a1a; height: 100vh; overflow: hidden; }
 #map { width: 100%; height: 100%; }
 
 /* Map overlays */
@@ -838,16 +785,6 @@ position: absolute; inset: 0; pointer-events: none;
 </head>
 <body>
 
-<!-- SPLASH -->
-
-<div id="splash">
-  <div class="splash-torii">⛩️</div>
-  <div class="splash-title">KAIUN COMPASS</div>
-  <div class="splash-subtitle">開運コンパス</div>
-  <div class="splash-tagline">迷ったら、運気のいい方へ。</div>
-  <div class="splash-progress"><div class="splash-progress-bar"></div></div>
-</div>
-
 <!-- APP -->
 
 <div id="app">
@@ -916,47 +853,48 @@ position: absolute; inset: 0; pointer-events: none;
 </div>
 
 <!-- PANEL: SETTINGS -->
-<div class="panel-page" id="panel-settings">
+<div class="panel-page scroll-panel" id="panel-settings">
+  <div class="panel-header" style="padding:14px 20px;text-align:left">
+    <h2 style="font-family:'Shippori Mincho',serif;font-size:16px;color:var(--gold2);letter-spacing:.1em">プロフィール設定</h2>
+    <p style="font-size:10px;color:var(--mist);margin-top:2px">生年月日から本命星を自動算出します</p>
+  </div>
   <div class="settings-content">
     <div class="sec-label">登録プロフィール</div>
-    <div class="settings-section">
-      <div class="profile-list" id="profileList"></div>
-      <div class="add-profile-btn" onclick="showAddForm()">＋ 家族・友人を追加</div>
-    </div>
+    <div id="profileList"></div>
+    <div class="add-profile-btn" onclick="showAddForm()">＋ 家族・友人を追加</div>
 
     <div id="addFormSection" style="display:none">
-      <div class="sec-label">プロフィール追加</div>
-      <div class="settings-section" style="gap:8px;">
-        <div class="form-group">
-          <label>お名前</label>
-          <input class="form-input" id="fName" placeholder="例：山田 太郎">
-        </div>
-        <div class="form-group">
-          <label>生年月日</label>
-          <div class="form-row">
-            <select class="form-select" id="fYear"></select>
-            <select class="form-select" id="fMonth"></select>
-            <select class="form-select" id="fDay"></select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>性別</label>
-          <div class="form-row2">
-            <select class="form-select" id="fGender">
-              <option value="male">男性</option>
-              <option value="female">女性</option>
-            </select>
-            <select class="form-select" id="fEmoji">
-              <option value="🧑">🧑 大人</option>
-              <option value="👶">👶 子供</option>
-              <option value="👴">👴 祖父</option>
-              <option value="👵">👵 祖母</option>
-              <option value="🧒">🧒 子ども</option>
-            </select>
-          </div>
-        </div>
-        <button class="form-btn form-btn-primary" onclick="addProfile()">✦ このプロフィールを追加</button>
+      <div class="sec-label" style="margin-top:4px">プロフィール追加</div>
+      <div class="form-group">
+        <label>お名前</label>
+        <input class="form-input" id="fName" placeholder="例：山田 太郎">
       </div>
+      <div class="form-group">
+        <label>生年月日</label>
+        <div class="form-row">
+          <select class="form-select" id="fYear"></select>
+          <select class="form-select" id="fMonth"></select>
+          <select class="form-select" id="fDay"></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>性別 ／ アイコン</label>
+        <div class="form-row2">
+          <select class="form-select" id="fGender">
+            <option value="male">男性</option>
+            <option value="female">女性</option>
+          </select>
+          <select class="form-select" id="fEmoji">
+            <option value="🧑">🧑 大人</option>
+            <option value="👶">👶 子供</option>
+            <option value="👴">👴 祖父</option>
+            <option value="👵">👵 祖母</option>
+            <option value="🧒">🧒 子ども</option>
+          </select>
+        </div>
+      </div>
+      <button class="form-btn form-btn-primary" onclick="addProfile()">✦ このプロフィールを追加</button>
+      <button class="form-btn" style="background:transparent;border:1.5px solid var(--mist);color:#7a6a50;padding:9px;border-radius:4px;cursor:pointer;font-family:'Noto Serif JP',serif;font-size:12px;margin-top:4px" onclick="showAddForm()">キャンセル</button>
     </div>
 
     <div class="sec-label">自宅の場所</div>
@@ -987,7 +925,7 @@ position: absolute; inset: 0; pointer-events: none;
 </div>
 
 <!-- PANEL: GOSHUINCHO -->
-<div class="panel-page" id="panel-goshuin">
+<div class="panel-page scroll-panel" id="panel-goshuin">
   <div class="goshuin-content">
     <div class="goshuin-stats">
       <div class="stat-card">
@@ -1015,7 +953,7 @@ position: absolute; inset: 0; pointer-events: none;
 </div>
 
 <!-- PANEL: OMIKUJI -->
-<div class="panel-page" id="panel-omikuji">
+<div class="panel-page scroll-panel" id="panel-omikuji">
   <div class="omikuji-content">
     <div class="omikuji-scroll-container">
       <div class="omikuji-result-label">DIVINE ORACLE</div>
@@ -1250,13 +1188,7 @@ window.addEventListener('load', () => {
   // Load from storage if available
   loadState();
 
-  setTimeout(() => {
-    document.getElementById('splash').classList.add('fade');
-    setTimeout(() => {
-      document.getElementById('splash').style.display = 'none';
-      document.getElementById('app').classList.add('visible');
-    }, 800);
-  }, 2000);
+
 });
 
 function buildSettingsForm() {
@@ -1350,7 +1282,12 @@ function getDirRating(dirKey, star, period) {
 // ======================================================
 function showAddForm() {
   const s = document.getElementById('addFormSection');
-  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+  if (s.style.display === 'none' || s.style.display === '') {
+    s.style.display = 'block';
+    document.getElementById('fName').focus();
+  } else {
+    s.style.display = 'none';
+  }
 }
 
 function addProfile() {
