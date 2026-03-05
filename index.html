@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
 <title>開運コンパス</title>
 
@@ -14,17 +15,17 @@
 body{
 margin:0;
 font-family:sans-serif;
-background:#050505;
+background:#070707;
 color:white;
 text-align:center;
 }
 
 header{
+background:linear-gradient(45deg,#d4af37,#ffd700);
+color:black;
 padding:20px;
 font-size:28px;
 font-weight:bold;
-background:linear-gradient(45deg,#d4af37,#ffd700);
-color:black;
 }
 
 .sub{
@@ -51,30 +52,37 @@ font-weight:bold;
 #map{
 height:420px;
 margin-top:20px;
+border-radius:10px;
 }
 
 .result{
-font-size:22px;
+font-size:24px;
 color:#ffd700;
-margin-top:10px;
+margin-top:15px;
+}
+
+.star{
+font-size:18px;
+margin-top:5px;
 }
 
 .omikuji{
-margin-top:20px;
 font-size:20px;
+margin-top:15px;
+color:#ffd700;
 }
 
 .goshuin{
-margin-top:20px;
-padding:20px;
+margin-top:25px;
 border:2px solid gold;
+padding:20px;
 border-radius:10px;
 }
 
 .luckday{
-margin-top:30px;
-font-size:18px;
+margin-top:20px;
 color:#ffd700;
+font-size:18px;
 }
 
 </style>
@@ -88,11 +96,10 @@ color:#ffd700;
 開運コンパス
 
 <div class="sub">
-迷ったら、運気のいい方へ
+迷ったら運気のいい方へ
 </div>
 
 </header>
-
 
 <div class="container">
 
@@ -103,24 +110,25 @@ color:#ffd700;
 <br>
 
 <button onclick="startApp()">
-今日の吉方位
+吉方位を見る
 </button>
+
+<div class="star" id="star"></div>
 
 <div class="result" id="direction"></div>
 
 <div id="map"></div>
-
 
 <div class="luckday" id="luckday"></div>
 
 
 <h2>おみくじ</h2>
 
-<button onclick="omikuji()">
+<button onclick="drawOmikuji()">
 引く
 </button>
 
-<div class="omikuji" id="omikujiResult"></div>
+<div id="omikujiResult" class="omikuji"></div>
 
 
 <div class="goshuin">
@@ -155,8 +163,11 @@ let luckyDirection
 function startApp(){
 
 calculateStar()
-getLuckyDirection()
+
+calculateDirection()
+
 initMap()
+
 showLuckDay()
 
 }
@@ -169,17 +180,26 @@ const birth=document.getElementById("birth").value
 
 if(!birth){
 
-alert("生年月日を入力")
+alert("生年月日を入力してください")
 
 return
 
 }
 
+const year=parseInt(birth.split("-")[0])
+
+const num=(11-(year%9))
+
+const star=num>9?num-9:num
+
+document.getElementById("star").innerHTML=
+"あなたの本命星："+star+"白星"
+
 }
 
 
 
-function getLuckyDirection(){
+function calculateDirection(){
 
 const directions=[
 "北","北東","東","南東",
@@ -189,7 +209,7 @@ const directions=[
 luckyDirection=directions[Math.floor(Math.random()*8)]
 
 document.getElementById("direction").innerHTML=
-"今日の最大吉方位： "+luckyDirection
+"今日の最大吉方位："+luckyDirection
 
 }
 
@@ -220,7 +240,7 @@ title:"現在地"
 
 })
 
-drawLuckyBeam()
+drawLuckyZone()
 
 searchShrines()
 
@@ -230,9 +250,9 @@ searchShrines()
 
 
 
-function drawLuckyBeam(){
+function drawLuckyZone(){
 
-const circle=new google.maps.Circle({
+new google.maps.Circle({
 
 strokeColor:"#FFD700",
 strokeOpacity:0.8,
@@ -281,22 +301,20 @@ icon:"https://maps.google.com/mapfiles/kml/shapes/temple.png"
 
 
 
-function omikuji(){
+function drawOmikuji(){
 
-const messages=[
+const list=[
 
-"北：静観の時。焦らず待て",
-"東：行動の時。進め",
-"南：人気運上昇",
-"西：金運の気配",
-"北東：変化の兆し",
-"南東：縁が広がる",
-"南西：家庭運良好",
-"北西：仕事運上昇"
+"大吉：行動すると道が開く",
+"中吉：準備を整える時",
+"吉：出会い運あり",
+"末吉：焦らず進め",
+"小吉：小さな幸せ",
+"凶：今日は静観"
 
 ]
 
-const result=messages[Math.floor(Math.random()*messages.length)]
+const result=list[Math.floor(Math.random()*list.length)]
 
 document.getElementById("omikujiResult").innerText=result
 
@@ -308,12 +326,9 @@ function checkin(){
 
 navigator.geolocation.getCurrentPosition(pos=>{
 
-const lat=pos.coords.latitude
-const lng=pos.coords.longitude
+const chance=Math.random()
 
-const dist=Math.random()*100
-
-if(dist<80){
+if(chance>0.3){
 
 document.getElementById("stamp").innerHTML=
 "⛩ 御朱印GET！"
@@ -333,10 +348,8 @@ document.getElementById("stamp").innerHTML=
 
 function showLuckDay(){
 
-const today=new Date()
-
 document.getElementById("luckday").innerHTML=
-"今日も行動が運気を呼びます"
+"天赦日・一粒万倍日を狙うとさらに開運"
 
 }
 
