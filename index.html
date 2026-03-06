@@ -1,392 +1,162 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-
-<title>開運コンパス</title>
-
-<link rel="manifest" href="manifest.json">
-
-<style>
-
-body{
-margin:0;
-font-family:sans-serif;
-background:#070707;
-color:white;
-text-align:center;
-}
-
-header{
-background:linear-gradient(45deg,#d4af37,#ffd700);
-color:black;
-padding:20px;
-font-size:28px;
-font-weight:bold;
-}
-
-.sub{
-font-size:14px;
-}
-
-.container{
-padding:20px;
-}
-
-input,button{
-padding:12px;
-margin:10px;
-border-radius:10px;
-border:none;
-font-size:16px;
-}
-
-button{
-background:#ffd700;
-font-weight:bold;
-}
-
-#map{
-height:420px;
-margin-top:20px;
-border-radius:10px;
-}
-
-.result{
-font-size:24px;
-color:#ffd700;
-margin-top:15px;
-}
-
-.star{
-font-size:18px;
-margin-top:5px;
-}
-
-.omikuji{
-font-size:20px;
-margin-top:15px;
-color:#ffd700;
-}
-
-.goshuin{
-margin-top:25px;
-border:2px solid gold;
-padding:20px;
-border-radius:10px;
-}
-
-.luckday{
-margin-top:20px;
-color:#ffd700;
-font-size:18px;
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>吉方位マップ Pro | 七赤金星 Edition</title>
+    <style>
+        :root { --primary: #f39c12; --dark: #1e1e1e; --gray: #333; }
+        body, html { height: 100%; margin: 0; background: var(--dark); color: white; font-family: 'Hiragino Sans', sans-serif; overflow: hidden; }
+        #map { height: 65%; width: 100%; }
+        #panel { height: 35%; padding: 20px; background: var(--dark); border-top: 2px solid var(--primary); overflow-y: auto; box-shadow: 0 -5px 15px rgba(0,0,0,0.5); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .status-badge { background: var(--primary); color: black; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 12px; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; text-align: center; }
+        .btn-shrine { background: #e74c3c; color: white; }
+        .btn-food { background: #27ae60; color: white; }
+        .spot-card { background: var(--gray); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+        .hint { font-size: 11px; color: #888; text-align: center; margin-top: 10px; }
+    </style>
 </head>
-
 <body>
-
-<header>
-
-開運コンパス
-
-<div class="sub">
-迷ったら運気のいい方へ
-</div>
-
-</header>
-
-<div class="container">
-
-<h2>生年月日</h2>
-
-<input type="date" id="birth">
-
-<br>
-
-<button onclick="startApp()">
-吉方位を見る
-</button>
-
-<div class="star" id="star"></div>
-
-<div class="result" id="direction"></div>
 
 <div id="map"></div>
 
-<div class="luckday" id="luckday"></div>
+<div id="panel">
+    <div class="header">
+        <div style="font-size: 18px; font-weight: bold;">1966.06.27 (七赤金星)</div>
+        <div class="status-badge" id="date-display">2026.03.06</div>
+    </div>
 
+    <div class="btn-group">
+        <button class="btn btn-shrine" onclick="searchSpots('shrine')">⛩ 神社参拝</button>
+        <button class="btn btn-food" onclick="searchSpots('restaurant')">🍴 飲食・悦び</button>
+    </div>
 
-<h2>おみくじ</h2>
-
-<button onclick="drawOmikuji()">
-引く
-</button>
-
-<div id="omikujiResult" class="omikuji"></div>
-
-
-<div class="goshuin">
-
-<h2>デジタル御朱印</h2>
-
-<button onclick="checkin()">
-参拝チェックイン
-</button>
-
-<div id="stamp"></div>
-
+    <div id="results">
+        <div style="color: #aaa; text-align: center; padding: 20px;">
+            地図上をタップして「自宅」を設定してください。<br>方位線が自動で描画されます。
+        </div>
+    </div>
+    <div class="hint">※磁北補正（西偏約7度）および30/60度分割を適用中</div>
 </div>
 
-<br>
-
-<button onclick="shareLuck()">
-SNSシェア
-</button>
-
-</div>
-
-
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places,geometry"></script>
 
 <script>
-
-let map
-let userLocation
-let luckyDirection
-
-
-function startApp(){
-
-calculateStar()
-
-calculateDirection()
-
-initMap()
-
-showLuckDay()
-
-}
-
-
-
-function calculateStar(){
-
-const birth=document.getElementById("birth").value
-
-if(!birth){
-
-alert("生年月日を入力してください")
-
-return
-
-}
-
-const year=parseInt(birth.split("-")[0])
-
-const num=(11-(year%9))
-
-const star=num>9?num-9:num
-
-document.getElementById("star").innerHTML=
-"あなたの本命星："+star+"白星"
-
-}
-
-
-
-function calculateDirection(){
-
-const directions=[
-"北","北東","東","南東",
-"南","南西","西","北西"
-]
-
-luckyDirection=directions[Math.floor(Math.random()*8)]
-
-document.getElementById("direction").innerHTML=
-"今日の最大吉方位："+luckyDirection
-
-}
-
-
-
-function initMap(){
-
-navigator.geolocation.getCurrentPosition(pos=>{
-
-userLocation={
-lat:pos.coords.latitude,
-lng:pos.coords.longitude
-}
-
-map=new google.maps.Map(
-document.getElementById("map"),
-{
-zoom:13,
-center:userLocation
-}
-)
-
-new google.maps.Marker({
-
-position:userLocation,
-map:map,
-title:"現在地"
-
-})
-
-drawLuckyZone()
-
-searchShrines()
-
-})
-
-}
-
-
-
-function drawLuckyZone(){
-
-new google.maps.Circle({
-
-strokeColor:"#FFD700",
-strokeOpacity:0.8,
-strokeWeight:2,
-fillColor:"#FFD700",
-fillOpacity:0.15,
-map:map,
-center:userLocation,
-radius:3000
-
-})
-
-}
-
-
-
-function searchShrines(){
-
-const service=new google.maps.places.PlacesService(map)
-
-service.textSearch({
-
-query:"神社"
-
-},function(results,status){
-
-if(status===google.maps.places.PlacesServiceStatus.OK){
-
-for(let i=0;i<results.length;i++){
-
-new google.maps.Marker({
-
-map:map,
-position:results[i].geometry.location,
-icon:"https://maps.google.com/mapfiles/kml/shapes/temple.png"
-
-})
-
-}
-
-}
-
-})
-
-}
-
-
-
-function drawOmikuji(){
-
-const list=[
-
-"大吉：行動すると道が開く",
-"中吉：準備を整える時",
-"吉：出会い運あり",
-"末吉：焦らず進め",
-"小吉：小さな幸せ",
-"凶：今日は静観"
-
-]
-
-const result=list[Math.floor(Math.random()*list.length)]
-
-document.getElementById("omikujiResult").innerText=result
-
-}
-
-
-
-function checkin(){
-
-navigator.geolocation.getCurrentPosition(pos=>{
-
-const chance=Math.random()
-
-if(chance>0.3){
-
-document.getElementById("stamp").innerHTML=
-"⛩ 御朱印GET！"
-
-}else{
-
-document.getElementById("stamp").innerHTML=
-"神社境内でチェックインしてください"
-
-}
-
-})
-
-}
-
-
-
-function showLuckDay(){
-
-document.getElementById("luckday").innerHTML=
-"天赦日・一粒万倍日を狙うとさらに開運"
-
-}
-
-
-
-function shareLuck(){
-
-if(navigator.share){
-
-navigator.share({
-
-title:"開運コンパス",
-text:"今日の吉方位："+luckyDirection,
-url:location.href
-
-})
-
-}
-
-}
-
-
-
-if('serviceWorker' in navigator){
-
-navigator.serviceWorker.register('./sw.js')
-
-}
-
+    let map, homeMarker;
+    let polylines = [];
+    const declination = -7.5; // 西偏角（日本の平均値）
+
+    function initMap() {
+        // 西宮市付近をデフォルトに設定
+        const nishinomiya = { lat: 34.737, lng: 135.341 };
+        map = new google.maps.Map(document.getElementById("map"), {
+            center: nishinomiya,
+            zoom: 13,
+            disableDefaultUI: true,
+            styles: [
+                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
+            ]
+        });
+
+        // クリックで自宅設定
+        map.addListener("click", (e) => {
+            setHome(e.latLng);
+        });
+    }
+
+    function setHome(latLng) {
+        if (homeMarker) homeMarker.setMap(null);
+        homeMarker = new google.maps.Marker({
+            position: latLng,
+            map: map,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: "#f39c12",
+                fillOpacity: 1,
+                strokeWeight: 2,
+                strokeColor: "white"
+            },
+            label: { text: "自宅", color: "white", fontWeight: "bold", fontSize: "14px" }
+        });
+        drawKigakuLines(latLng);
+    }
+
+    function drawKigakuLines(center) {
+        polylines.forEach(p => p.setMap(null));
+        polylines = [];
+
+        // 気学独特の角度（北・南・東・西は30度、その他は60度）
+        const angles = [
+            { deg: 30,  label: '北' }, { deg: 60,  label: '北東' },
+            { deg: 30,  label: '東' }, { deg: 60,  label: '南東' },
+            { deg: 30,  label: '南' }, { deg: 60,  label: '南西' },
+            { deg: 30,  label: '西' }, { deg: 60,  label: '北西' }
+        ];
+
+        let currentAngle = declination - 15; // 北の30度の始点から開始
+
+        angles.forEach((item, index) => {
+            const path = [
+                center,
+                google.maps.spherical.computeOffset(center, 10000, currentAngle)
+            ];
+            
+            const line = new google.maps.Polyline({
+                path: path,
+                strokeColor: "#f39c12",
+                strokeOpacity: 0.4,
+                strokeWeight: 2,
+                map: map
+            });
+            polylines.push(line);
+            currentAngle += item.deg;
+        });
+    }
+
+    function searchSpots(type) {
+        if (!homeMarker) {
+            alert("先に地図をタップして自宅を設定してください！");
+            return;
+        }
+        
+        const service = new google.maps.places.PlacesService(map);
+        const request = {
+            location: homeMarker.getPosition(),
+            radius: '5000',
+            type: [type === 'shrine' ? 'place_of_worship' : 'restaurant'],
+            keyword: type === 'shrine' ? '神社' : ''
+        };
+
+        service.nearbySearch(request, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+                let html = "";
+                results.slice(0, 5).forEach(place => {
+                    html += `
+                        <div class="spot-card">
+                            <div style="font-weight:bold; color:var(--primary);">${place.name}</div>
+                            <div style="font-size:12px; margin-top:4px;">🌟 評価: ${place.rating || '---'} | ${place.vicinity}</div>
+                        </div>`;
+                    
+                    new google.maps.Marker({
+                        position: place.geometry.location,
+                        map: map,
+                        title: place.name,
+                        animation: google.maps.Animation.DROP
+                    });
+                });
+                document.getElementById("results").innerHTML = html;
+            }
+        });
+    }
+
+    window.onload = initMap;
 </script>
-
-
-
-<script async defer
-src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAP_API_KEY&libraries=places&callback=initMap">
-</script>
-
-
 </body>
 </html>
