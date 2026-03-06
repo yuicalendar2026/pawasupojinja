@@ -3,43 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>吉方位マップ Pro | 七赤金星 Edition</title>
+    <title>吉方位マップ Pro | 七赤金星</title>
     <style>
-        :root { --primary: #f39c12; --dark: #1e1e1e; --gray: #333; }
-        body, html { height: 100%; margin: 0; background: var(--dark); color: white; font-family: 'Hiragino Sans', sans-serif; overflow: hidden; }
-        #map { height: 65%; width: 100%; }
-        #panel { height: 35%; padding: 20px; background: var(--dark); border-top: 2px solid var(--primary); overflow-y: auto; box-shadow: 0 -5px 15px rgba(0,0,0,0.5); }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .status-badge { background: var(--primary); color: black; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 12px; }
-        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; text-align: center; }
-        .btn-shrine { background: #e74c3c; color: white; }
-        .btn-food { background: #27ae60; color: white; }
-        .spot-card { background: var(--gray); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
-        .hint { font-size: 11px; color: #888; text-align: center; margin-top: 10px; }
+        body, html { height: 100%; margin: 0; font-family: 'Hiragino Sans', sans-serif; }
+        #map { height: 70%; width: 100%; }
+        #panel { height: 30%; padding: 15px; background: #fff; overflow-y: auto; border-top: 3px solid #f39c12; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; }
+        .btn-shrine { background: #e74c3c; }
+        .btn-food { background: #27ae60; }
+        .spot-card { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .info-text { font-size: 12px; color: #666; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div id="map"></div>
-
 <div id="panel">
-    <div class="header">
-        <div style="font-size: 18px; font-weight: bold;">1966.06.27 (七赤金星)</div>
-        <div class="status-badge" id="date-display">2026.03.06</div>
+    <div style="font-weight: bold; font-size: 16px; margin-bottom: 10px;">
+        1966.06.27 七赤金星の吉方位地図
     </div>
-
+    <div class="info-text">
+        地図をタップして自宅をピン留めしてください。<br>
+        磁北（西偏7°）補正済みの30/60度方位線を表示します。
+    </div>
     <div class="btn-group">
-        <button class="btn btn-shrine" onclick="searchSpots('shrine')">⛩ 神社参拝</button>
-        <button class="btn btn-food" onclick="searchSpots('restaurant')">🍴 飲食・悦び</button>
+        <button class="btn btn-shrine" onclick="searchSpots('shrine')">⛩ 神社を探す</button>
+        <button class="btn btn-food" onclick="searchSpots('restaurant')">🍴 飲食スポット</button>
     </div>
-
-    <div id="results">
-        <div style="color: #aaa; text-align: center; padding: 20px;">
-            地図上をタップして「自宅」を設定してください。<br>方位線が自動で描画されます。
-        </div>
-    </div>
-    <div class="hint">※磁北補正（西偏約7度）および30/60度分割を適用中</div>
+    <div id="results"></div>
 </div>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCBzk1mv7n0qNsSUpaG1mdtgPh_UV5K7zM&libraries=places,geometry"></script>
@@ -47,24 +39,20 @@
 <script>
     let map, homeMarker;
     let polylines = [];
-    const declination = -7.5; // 西偏角（日本の平均値）
+    const declination = -7.5; // 磁北補正（西偏）
 
     function initMap() {
-        // 西宮市付近をデフォルトに設定
-        const nishinomiya = { lat: 34.737, lng: 135.341 };
+        // 初期位置を西宮市付近に設定
+        const startPos = { lat: 34.737, lng: 135.341 };
+        
         map = new google.maps.Map(document.getElementById("map"), {
-            center: nishinomiya,
-            zoom: 13,
-            disableDefaultUI: true,
-            styles: [
-                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-                { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-                { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-                { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
-            ]
+            center: startPos,
+            zoom: 13, // 街がはっきり見えるズームレベル
+            mapTypeControl: false,
+            streetViewControl: false
         });
 
-        // クリックで自宅設定
+        // 地図をクリックした時に自宅を設定
         map.addListener("click", (e) => {
             setHome(e.latLng);
         });
@@ -72,83 +60,91 @@
 
     function setHome(latLng) {
         if (homeMarker) homeMarker.setMap(null);
+        
         homeMarker = new google.maps.Marker({
             position: latLng,
             map: map,
-            icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 10,
-                fillColor: "#f39c12",
-                fillOpacity: 1,
-                strokeWeight: 2,
-                strokeColor: "white"
-            },
-            label: { text: "自宅", color: "white", fontWeight: "bold", fontSize: "14px" }
+            label: { text: "自宅", fontWeight: "bold" },
+            animation: google.maps.Animation.DROP
         });
-        drawKigakuLines(latLng);
+
+        drawDirectionLines(latLng);
     }
 
-    function drawKigakuLines(center) {
+    function drawDirectionLines(center) {
         polylines.forEach(p => p.setMap(null));
         polylines = [];
 
-        // 気学独特の角度（北・南・東・西は30度、その他は60度）
-        const angles = [
-            { deg: 30,  label: '北' }, { deg: 60,  label: '北東' },
-            { deg: 30,  label: '東' }, { deg: 60,  label: '南東' },
-            { deg: 30,  label: '南' }, { deg: 60,  label: '南西' },
-            { deg: 30,  label: '西' }, { deg: 60,  label: '北西' }
+        // 30度と60度の交互配置（北30-北東60-東30...）
+        const config = [
+            { deg: 30, color: '#FF0000', label: '北' },
+            { deg: 60, color: '#FF8C00', label: '北東' },
+            { deg: 30, color: '#008000', label: '東' },
+            { deg: 60, color: '#FFFF00', label: '南東' },
+            { deg: 30, color: '#FF4500', label: '南' },
+            { deg: 60, color: '#800080', label: '南西' },
+            { deg: 30, color: '#DAA520', label: '西' },
+            { deg: 60, color: '#00CED1', label: '北西' }
         ];
 
-        let currentAngle = declination - 15; // 北の30度の始点から開始
+        let currentAngle = declination - 15; // 北の30度幅の開始点
 
-        angles.forEach((item, index) => {
+        config.forEach((item) => {
+            // 方位の境界線を引く
             const path = [
                 center,
-                google.maps.spherical.computeOffset(center, 10000, currentAngle)
+                google.maps.spherical.computeOffset(center, 20000, currentAngle)
             ];
-            
+
             const line = new google.maps.Polyline({
                 path: path,
-                strokeColor: "#f39c12",
-                strokeOpacity: 0.4,
-                strokeWeight: 2,
+                strokeColor: item.color,
+                strokeOpacity: 0.8,
+                strokeWeight: 4, // 線を太くして見やすく
                 map: map
             });
             polylines.push(line);
+            
             currentAngle += item.deg;
         });
+        
+        // 最後に閉じるための線
+        const lastLine = new google.maps.Polyline({
+            path: [center, google.maps.spherical.computeOffset(center, 20000, currentAngle)],
+            strokeColor: '#FF0000',
+            strokeOpacity: 0.8,
+            strokeWeight: 4,
+            map: map
+        });
+        polylines.push(lastLine);
     }
 
     function searchSpots(type) {
         if (!homeMarker) {
-            alert("先に地図をタップして自宅を設定してください！");
+            alert("まず地図上をタップして自宅を設定してください。");
             return;
         }
-        
+
         const service = new google.maps.places.PlacesService(map);
         const request = {
             location: homeMarker.getPosition(),
-            radius: '5000',
-            type: [type === 'shrine' ? 'place_of_worship' : 'restaurant'],
-            keyword: type === 'shrine' ? '神社' : ''
+            radius: '3000',
+            keyword: type === 'shrine' ? '神社' : 'レストラン'
         };
 
         service.nearbySearch(request, (results, status) => {
             if (status === google.maps.places.PlacesServiceStatus.OK) {
                 let html = "";
-                results.slice(0, 5).forEach(place => {
-                    html += `
-                        <div class="spot-card">
-                            <div style="font-weight:bold; color:var(--primary);">${place.name}</div>
-                            <div style="font-size:12px; margin-top:4px;">🌟 評価: ${place.rating || '---'} | ${place.vicinity}</div>
-                        </div>`;
+                results.slice(0, 8).forEach(place => {
+                    html += `<div class="spot-card"><strong>${place.name}</strong><br><span style="font-size:12px;">★ ${place.rating || '--'} | ${place.vicinity}</span></div>`;
                     
                     new google.maps.Marker({
                         position: place.geometry.location,
                         map: map,
                         title: place.name,
-                        animation: google.maps.Animation.DROP
+                        icon: {
+                            url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+                        }
                     });
                 });
                 document.getElementById("results").innerHTML = html;
